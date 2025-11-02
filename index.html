@@ -13,18 +13,10 @@
       padding: 2rem;
       text-align: center;
     }
-    header {
-      margin-bottom: 2rem;
-    }
-    h1 {
-      color: #cc0000;
-    }
-    p {
-      max-width: 600px;
-      margin: 1rem auto;
-    }
+    header { margin-bottom: 2rem; }
+    h1 { color: #cc0000; }
+    p { max-width: 600px; margin: 1rem auto; }
 
-    /* === Ajustes específicos del widget de Botpress === */
     /* Contenedor del chat */
     .bpw-chat-container {
       position: fixed !important;
@@ -36,54 +28,34 @@
       border-radius: 12px !important;
       box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
       z-index: 9999 !important;
-      clip-path: inset(0px 0px 30px 0px);
+      /* Recorte agresivo para ocultar footer: ajustar 60px según altura del footer */
+      clip-path: inset(0px 0px 60px 0px) !important;
+      pointer-events: auto;
+      background: white;
     }
 
-    /* Ajuste del botón flotante */
-    .bpw-floating-button {
-      bottom: 25px !important;
-      right: 25px !important;
-      z-index: 10000 !important;
-    }
-
-    /* Adaptación en móviles */
+    /* Versión móvil */
     @media (max-width: 768px) {
       .bpw-chat-container {
         width: 90% !important;
         right: 5% !important;
         height: 70vh !important;
-        clip-path: inset(0px 0px 35px 0px);
+        clip-path: inset(0px 0px 90px 0px) !important;
       }
     }
 
-    /* === Estilos para ocultar el footer excepto la zona de entrada === */
-    .bpw-chat-container { overflow: visible !important; }
-
+    /* Fallback: forzar que el footer interno quede oculto si se puede seleccionar */
     .bpw-chat-container .bpw-footer,
     .bpw-chat-container .bpw-chat-footer,
     .bpw-chat-container footer {
-      display: block !important;
-      position: relative !important;
-      padding: 0 !important;
-      margin: 0 !important;
-      height: auto !important;
-      min-height: 0 !important;
-      box-sizing: border-box !important;
-      background: transparent !important;
-    }
-
-    /* Oculta por defecto todo el contenido del footer; el script dejará visible lo necesario */
-    .bpw-chat-container .bpw-footer > * {
-      display: none !important;
       visibility: hidden !important;
       height: 0 !important;
       margin: 0 !important;
       padding: 0 !important;
-      line-height: 0 !important;
       overflow: hidden !important;
     }
 
-    /* Zona de input que el script marcará con la clase .bpw-keep-visible */
+    /* Si logramos inyectar en iframe o el footer está accesible, esta clase dejará sólo la zona de input visible */
     .bpw-chat-container .bpw-footer .bpw-keep-visible {
       display: flex !important;
       visibility: visible !important;
@@ -94,34 +66,6 @@
       gap: 0.5rem !important;
       width: calc(100% - 1rem) !important;
     }
-
-    /* Asegurar que el textarea / input se vea correctamente */
-    .bpw-chat-container .bpw-footer .bpw-keep-visible textarea,
-    .bpw-chat-container .bpw-footer .bpw-keep-visible input {
-      display: block !important;
-      visibility: visible !important;
-      height: 40px !important;
-      max-height: 80px !important;
-      width: 100% !important;
-      box-sizing: border-box !important;
-      border-radius: 8px !important;
-      padding: 0.5rem !important;
-      resize: vertical !important;
-    }
-
-    /* Asegurar el botón de enviar */
-    .bpw-chat-container .bpw-footer .bpw-keep-visible button,
-    .bpw-chat-container .bpw-footer .bpw-keep-visible .bpw-send-button {
-      display: inline-flex !important;
-      visibility: visible !important;
-      height: 40px !important;
-      align-items: center !important;
-      justify-content: center !important;
-      padding: 0 0.75rem !important;
-      border-radius: 8px !important;
-    }
-
-    /* Si el widget usa iframe como contenedor, los estilos desde aquí no afectarán su interior */
   </style>
 </head>
 <body>
@@ -136,53 +80,60 @@
   <script src="https://cdn.botpress.cloud/webchat/v3.3/inject.js"></script>
   <script src="https://files.bpcontent.cloud/2025/11/02/15/20251102152733-BAVVCELR.js" defer></script>
 
-  <!-- Código añadido: limpia el footer del widget dejando solo la zona de entrada visible -->
+  <!-- Script para intentar ocultar footer y/o inyectar CSS dentro del iframe si es posible -->
   <script>
     (function () {
-      function pruneFooter(container) {
+      const FOOTER_INTRUSIVE_HEIGHT = 60; // px que queremos recortar si no podemos acceder al iframe
+      function applyLocalPrune(container) {
         if (!container) return;
+        // Forzar recorte extra (en caso de que clip-path original no sea suficiente)
+        container.style.clipPath = 'inset(0px 0px ' + FOOTER_INTRUSIVE_HEIGHT + 'px 0px)';
+        container.style.height = container.style.height || ''; // dejar como está
+        // ocultar nodos footer si son accesibles
         const footer = container.querySelector('.bpw-footer, .bpw-chat-footer, footer');
-        if (!footer) return;
-
-        // Si ya hemos podado, no repetir
-        if (footer.getAttribute('data-pruned') === 'true') return;
-
-        // localizar input/textarea y botón dentro del footer
-        const inputEl = footer.querySelector('textarea, input[type="text"], input[type="search"], .bpw-input, .bpw-text-input');
-        const sendBtn = footer.querySelector('button[type="submit"], button[data-send], .bpw-send-button, .bpw-submit');
-
-        // si no hay input aún, salir (el observer lo reintentará)
-        if (!inputEl) return;
-
-        // crear wrapper visible
-        const wrapper = document.createElement('div');
-        wrapper.className = 'bpw-keep-visible';
-
-        // intentar clonar para no interferir con la lógica interna; si falla, mover
-        try {
-          const clonedInput = inputEl.cloneNode(true);
-          wrapper.appendChild(clonedInput);
-          if (sendBtn) {
-            const clonedBtn = sendBtn.cloneNode(true);
-            // si el botón clonado no tiene listeners, intentar usar el original si es seguro
-            wrapper.appendChild(clonedBtn);
-          }
-        } catch (e) {
-          if (inputEl.parentNode) wrapper.appendChild(inputEl);
-          if (sendBtn && sendBtn.parentNode) wrapper.appendChild(sendBtn);
+        if (footer) {
+          try {
+            footer.style.visibility = 'hidden';
+            footer.style.height = '0';
+            footer.style.padding = '0';
+            footer.style.margin = '0';
+            footer.setAttribute('data-pruned', 'true');
+          } catch (e) { /* no hacer nada si hay error */ }
         }
-
-        // limpiar footer y añadir solo el wrapper
-        while (footer.firstChild) footer.removeChild(footer.firstChild);
-        footer.appendChild(wrapper);
-
-        footer.setAttribute('data-pruned', 'true');
-        footer.style.minHeight = '0';
-        footer.style.height = 'auto';
-        container.style.overflow = 'hidden';
       }
 
-      // Observador para detectar la inserción del widget en la página
+      function tryInjectIntoIframe(iframe) {
+        try {
+          const doc = iframe.contentDocument || iframe.contentWindow.document;
+          if (!doc) return false;
+          const style = doc.createElement('style');
+          style.innerHTML = `
+            .bpw-footer, .bpw-chat-footer, footer { display: none !important; visibility: hidden !important; height: 0 !important; padding: 0 !important; margin: 0 !important; overflow: hidden !important; }
+            /* Mostrar solo input si existe (ajustar selectores internos si hace falta) */
+            .bpw-footer .bpw-keep-visible { display: flex !important; visibility: visible !important; }
+          `;
+          doc.head.appendChild(style);
+          return true;
+        } catch (e) {
+          return false;
+        }
+      }
+
+      function handleWidgetContainer(container) {
+        if (!container) return;
+        applyLocalPrune(container);
+
+        // buscar un iframe dentro del container
+        const iframe = container.querySelector('iframe');
+        if (iframe) {
+          const ok = tryInjectIntoIframe(iframe);
+          if (!ok) {
+            // si no se puede inyectar por CORS, aumentar recorte visual para esconder el footer
+            container.style.clipPath = 'inset(0px 0px 90px 0px)';
+          }
+        }
+      }
+
       const observer = new MutationObserver((mutations, obs) => {
         const container =
           document.querySelector('.bpw-chat-container') ||
@@ -191,11 +142,19 @@
           document.querySelector('iframe[src*="botpress"], iframe[src*="webchat"]');
 
         if (!container) return;
+        // Si el selector devuelve un iframe directo (widget embebido como iframe), manejarlo
+        if (container.tagName === 'IFRAME') {
+          const ok = tryInjectIntoIframe(container);
+          if (!ok) {
+            // if cross-origin, nada que hacer salvo recortar el contenedor padre si existe
+            const parent = container.parentElement;
+            if (parent) parent.style.clipPath = 'inset(0px 0px 90px 0px)';
+          }
+        } else {
+          handleWidgetContainer(container);
+        }
 
-        pruneFooter(container);
-
-        // si footer ya podado, desconectar
-        const footer = container.querySelector('.bpw-footer, .bpw-chat-footer, footer');
+        const footer = (container.querySelector ? container.querySelector('.bpw-footer, .bpw-chat-footer, footer') : null);
         if (footer && footer.getAttribute('data-pruned') === 'true') {
           obs.disconnect();
         }
@@ -203,15 +162,21 @@
 
       observer.observe(document.body, { childList: true, subtree: true });
 
-      // Reintentos periódicos por si el widget se carga más tarde
+      // reintentos periódicos si el widget se carga con retraso
       let tries = 0;
-      const maxTries = 40;
+      const maxTries = 60;
       const interval = setInterval(() => {
-        const container = document.querySelector('.bpw-chat-container') ||
-                          document.querySelector('[data-botpress-webchat]') ||
-                          document.querySelector('[id^="bpw-"]');
+        const container =
+          document.querySelector('.bpw-chat-container') ||
+          document.querySelector('[data-botpress-webchat]') ||
+          document.querySelector('[id^="bpw-"]') ||
+          document.querySelector('iframe[src*="botpress"], iframe[src*="webchat"]');
         if (container) {
-          pruneFooter(container);
+          if (container.tagName === 'IFRAME') {
+            tryInjectIntoIframe(container);
+          } else {
+            handleWidgetContainer(container);
+          }
         }
         tries++;
         if (tries > maxTries) clearInterval(interval);
