@@ -24,32 +24,35 @@
       margin: 1rem auto;
     }
 
-    /* === Ajuste del widget de Botpress === */
-    /* Contenedor principal del chat */
+    /* === Ajustes específicos del widget de Botpress === */
+    /* Contenedor del chat */
     .bpw-chat-container {
       position: fixed !important;
-      bottom: 80px !important;       /* Sube el chat sobre el footer */
-      right: 20px !important;
-      width: 370px !important;       /* Ancho del chat */
-      max-height: 70vh !important;   /* Límite vertical del chat */
-      border-radius: 10px !important;
-      overflow: hidden !important;   /* Recorta visualmente el contenido sobrante */
+      bottom: 20px !important;          /* Posición vertical del chat */
+      right: 20px !important;           /* Posición horizontal del chat */
+      width: 380px !important;          /* Tamaño del chat */
+      height: 550px !important;         /* Altura fija del chat */
+      overflow: hidden !important;      /* Oculta contenido sobrante (footer incluido) */
+      border-radius: 12px !important;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
       z-index: 9999 !important;
+      clip-path: inset(0px 0px 30px 0px); /* Recorta 30px de la parte inferior */
     }
 
-    /* Ajuste opcional de la burbuja flotante */
+    /* Ajuste del botón flotante */
     .bpw-floating-button {
-      bottom: 90px !important; /* Subir el botón para que no tape el footer */
-      right: 20px !important;
+      bottom: 25px !important;
+      right: 25px !important;
       z-index: 10000 !important;
     }
 
-    /* Si el chat sigue tapando parte del contenido */
+    /* Adaptación en móviles */
     @media (max-width: 768px) {
       .bpw-chat-container {
-        bottom: 100px !important;
-        width: 95% !important;
-        right: 2.5% !important;
+        width: 90% !important;
+        right: 5% !important;
+        height: 70vh !important;
+        clip-path: inset(0px 0px 35px 0px);
       }
     }
   </style>
