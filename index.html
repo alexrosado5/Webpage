@@ -26,6 +26,11 @@
       font-size: 1.1rem;
       color: #555;
     }
+
+    /* 👇 Oculta el footer de Tidio (solo si tu plan lo permite) */
+    iframe[src*="tidio"] {
+      display: none !important;
+    }
   </style>
 </head>
 <body>
@@ -34,7 +39,6 @@
     <p>Haz clic en el ícono del chat para hablar conmigo.</p>
   </div>
 
-  <!-- Tu script de Tidio -->
   <script src="//code.tidio.co/xgenkujw5k7ywl9eyyx8rtyikceztfry.js" async></script>
 </body>
 </html>
