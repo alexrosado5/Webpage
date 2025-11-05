@@ -1,187 +1,40 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Entupunto Chatbot</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mi Chatbot</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      background-color: #f5f5f5;
-      color: #333;
+      background: #f2f2f2;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
       margin: 0;
-      padding: 2rem;
+      color: #333;
+    }
+    .container {
       text-align: center;
     }
-    header { margin-bottom: 2rem; }
-    h1 { color: #cc0000; }
-    p { max-width: 600px; margin: 1rem auto; }
-
-    /* Contenedor del chat */
-    .bpw-chat-container {
-      position: fixed !important;
-      bottom: 20px !important;
-      right: 20px !important;
-      width: 380px !important;
-      height: 550px !important;
-      overflow: hidden !important;
-      border-radius: 12px !important;
-      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
-      z-index: 9999 !important;
-      /* Recorte agresivo para ocultar footer: ajustar 60px según altura del footer */
-      clip-path: inset(0px 0px 60px 0px) !important;
-      pointer-events: auto;
-      background: white;
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 10px;
     }
-
-    /* Versión móvil */
-    @media (max-width: 768px) {
-      .bpw-chat-container {
-        width: 90% !important;
-        right: 5% !important;
-        height: 70vh !important;
-        clip-path: inset(0px 0px 90px 0px) !important;
-      }
-    }
-
-    /* Fallback: forzar que el footer interno quede oculto si se puede seleccionar */
-    .bpw-chat-container .bpw-footer,
-    .bpw-chat-container .bpw-chat-footer,
-    .bpw-chat-container footer {
-      visibility: hidden !important;
-      height: 0 !important;
-      margin: 0 !important;
-      padding: 0 !important;
-      overflow: hidden !important;
-    }
-
-    /* Si logramos inyectar en iframe o el footer está accesible, esta clase dejará sólo la zona de input visible */
-    .bpw-chat-container .bpw-footer .bpw-keep-visible {
-      display: flex !important;
-      visibility: visible !important;
-      height: auto !important;
-      margin: 0.5rem !important;
-      padding: 0 !important;
-      align-items: center !important;
-      gap: 0.5rem !important;
-      width: calc(100% - 1rem) !important;
+    p {
+      font-size: 1.1rem;
+      color: #555;
     }
   </style>
 </head>
 <body>
-  <header>
-    <h1>Chatbot de Entupunto</h1>
-    <p>Bienvenido. Aquí puedes probar el asistente virtual que ayuda a recuperar puntos del carné de conducir.</p>
-  </header>
+  <div class="container">
+    <h1>💬 Mi Chatbot</h1>
+    <p>Haz clic en el ícono del chat para hablar conmigo.</p>
+  </div>
 
-  <p>El chat se carga automáticamente en la esquina inferior derecha.</p>
-
-  <!-- Scripts del chatbot -->
-  <script src="https://cdn.botpress.cloud/webchat/v3.3/inject.js"></script>
-  <script src="https://files.bpcontent.cloud/2025/11/02/15/20251102152733-BAVVCELR.js" defer></script>
-
-  <!-- Script para intentar ocultar footer y/o inyectar CSS dentro del iframe si es posible -->
-  <script>
-    (function () {
-      const FOOTER_INTRUSIVE_HEIGHT = 60; // px que queremos recortar si no podemos acceder al iframe
-      function applyLocalPrune(container) {
-        if (!container) return;
-        // Forzar recorte extra (en caso de que clip-path original no sea suficiente)
-        container.style.clipPath = 'inset(0px 0px ' + FOOTER_INTRUSIVE_HEIGHT + 'px 0px)';
-        container.style.height = container.style.height || ''; // dejar como está
-        // ocultar nodos footer si son accesibles
-        const footer = container.querySelector('.bpw-footer, .bpw-chat-footer, footer');
-        if (footer) {
-          try {
-            footer.style.visibility = 'hidden';
-            footer.style.height = '0';
-            footer.style.padding = '0';
-            footer.style.margin = '0';
-            footer.setAttribute('data-pruned', 'true');
-          } catch (e) { /* no hacer nada si hay error */ }
-        }
-      }
-
-      function tryInjectIntoIframe(iframe) {
-        try {
-          const doc = iframe.contentDocument || iframe.contentWindow.document;
-          if (!doc) return false;
-          const style = doc.createElement('style');
-          style.innerHTML = `
-            .bpw-footer, .bpw-chat-footer, footer { display: none !important; visibility: hidden !important; height: 0 !important; padding: 0 !important; margin: 0 !important; overflow: hidden !important; }
-            /* Mostrar solo input si existe (ajustar selectores internos si hace falta) */
-            .bpw-footer .bpw-keep-visible { display: flex !important; visibility: visible !important; }
-          `;
-          doc.head.appendChild(style);
-          return true;
-        } catch (e) {
-          return false;
-        }
-      }
-
-      function handleWidgetContainer(container) {
-        if (!container) return;
-        applyLocalPrune(container);
-
-        // buscar un iframe dentro del container
-        const iframe = container.querySelector('iframe');
-        if (iframe) {
-          const ok = tryInjectIntoIframe(iframe);
-          if (!ok) {
-            // si no se puede inyectar por CORS, aumentar recorte visual para esconder el footer
-            container.style.clipPath = 'inset(0px 0px 90px 0px)';
-          }
-        }
-      }
-
-      const observer = new MutationObserver((mutations, obs) => {
-        const container =
-          document.querySelector('.bpw-chat-container') ||
-          document.querySelector('[data-botpress-webchat]') ||
-          document.querySelector('[id^="bpw-"]') ||
-          document.querySelector('iframe[src*="botpress"], iframe[src*="webchat"]');
-
-        if (!container) return;
-        // Si el selector devuelve un iframe directo (widget embebido como iframe), manejarlo
-        if (container.tagName === 'IFRAME') {
-          const ok = tryInjectIntoIframe(container);
-          if (!ok) {
-            // if cross-origin, nada que hacer salvo recortar el contenedor padre si existe
-            const parent = container.parentElement;
-            if (parent) parent.style.clipPath = 'inset(0px 0px 90px 0px)';
-          }
-        } else {
-          handleWidgetContainer(container);
-        }
-
-        const footer = (container.querySelector ? container.querySelector('.bpw-footer, .bpw-chat-footer, footer') : null);
-        if (footer && footer.getAttribute('data-pruned') === 'true') {
-          obs.disconnect();
-        }
-      });
-
-      observer.observe(document.body, { childList: true, subtree: true });
-
-      // reintentos periódicos si el widget se carga con retraso
-      let tries = 0;
-      const maxTries = 60;
-      const interval = setInterval(() => {
-        const container =
-          document.querySelector('.bpw-chat-container') ||
-          document.querySelector('[data-botpress-webchat]') ||
-          document.querySelector('[id^="bpw-"]') ||
-          document.querySelector('iframe[src*="botpress"], iframe[src*="webchat"]');
-        if (container) {
-          if (container.tagName === 'IFRAME') {
-            tryInjectIntoIframe(container);
-          } else {
-            handleWidgetContainer(container);
-          }
-        }
-        tries++;
-        if (tries > maxTries) clearInterval(interval);
-      }, 500);
-    })();
-  </script>
+  <!-- Tu script de Tidio -->
+  <script src="//code.tidio.co/xgenkujw5k7ywl9eyyx8rtyikceztfry.js" async></script>
 </body>
 </html>
